@@ -2,7 +2,7 @@ import random
 import json
 from fasthtml.common import *
 from fasthtml.components import *
-from fastapi.middleware.cors import CORSMiddleware
+# from fastapi.middleware.cors import CORSMiddleware
 
 Version = '0.5'
 Base = 'demo'
@@ -60,13 +60,13 @@ app, rt = fast_app(pico=True, hdrs=(
 
 rt = app.route
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],  # Cambia esto según tus necesidades de seguridad
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+# app.add_middleware(
+#     CORSMiddleware,
+#     allow_origins=["*"],  # Cambia esto según tus necesidades de seguridad
+#     allow_credentials=True,
+#     allow_methods=["*"],
+#     allow_headers=["*"],
+# )
 
 def Icono(nombre):
     return Img(src=f"{OrigenIconos}/{nombre}.png", cls="imagen")
