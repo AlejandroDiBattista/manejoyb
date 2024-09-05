@@ -52,7 +52,8 @@ def generar_examen(examen):
     # mostrar_examen(nombre, descripcion, salida)
     return {"examen": examen, "nombre": nombre, "descripcion": descripcion, "preguntas": salida}
 
-# 
+################################################################################
+
 app, rt = fast_app(pico=True, hdrs=(
     Link(rel='stylesheet', href='/demo/estilo.css', type='text/css'),
 ))
@@ -66,6 +67,7 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
 def Icono(nombre):
     return Img(src=f"{OrigenIconos}/{nombre}.png", cls="imagen")
 
