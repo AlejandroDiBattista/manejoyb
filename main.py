@@ -2,7 +2,9 @@ import random
 import json
 from fasthtml.common import *
 from fasthtml.components import *
+from fastapi.middleware.cors import CORSMiddleware
 
+Version = '0.5'
 Base = 'demo'
 OrigenExamenes = f'{Base}/examenes.json'
 OrigenIconos   = f'/{Base}/iconos'
@@ -13,7 +15,9 @@ def leer_json(ruta):
     
 def cargar_examenes():
     """ Carga los examenes a partir de la configuración """
-    return leer_json(OrigenExamenes)['configuracion']
+    lista = leer_json(OrigenExamenes)['configuracion']
+    print(f'Lista : {len(lista)}')
+    return lista
 
 def generar_examen(examen):
     """ Genera un examen a partir de la configuración """
@@ -48,16 +52,22 @@ def generar_examen(examen):
     # mostrar_examen(nombre, descripcion, salida)
     return {"examen": examen, "nombre": nombre, "descripcion": descripcion, "preguntas": salida}
 
-
+# 
 app, rt = fast_app(pico=True, hdrs=(
-    Link(rel='stylesheet', href='/estilo.css', type='text/css'),
+    Link(rel='stylesheet', href='/demo/estilo.css', type='text/css'),
 ))
 
 rt = app.route
 
-# return (Input(type='radio', id=f"{numero}-{i}", name=id, value=i, aria_invalid=invalido, checked=marcada),  Label(Img(src=f"/demo/iconos/{imagen}.png"), _for=f"{numero}-{i}", cls="imagen"))
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Cambia esto según tus necesidades de seguridad
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 def Icono(nombre):
-    return Img(src=f"{OrigenIconos}/{nombre}.png")
+    return Img(src=f"{OrigenIconos}/{nombre}.png", cls="imagen")
 
 def MostrarEstado(preguntas):
     cantidad = len(preguntas['preguntas'])
@@ -98,8 +108,10 @@ def TipoExamen(tipo):
 
 def MostrarRespuesta(numero, id, i, respuesta, eleccion, correcta):
     def MostrarImagen(imagen):
-        return (Input(type='radio', id=f"{numero}-{i}", name=id, value=i, aria_invalid=invalido, checked=actual), 
-                Label(Icono(imagen), _for=f"{numero}-{i}", cls="imagen"))
+        return Div( 
+                Label(Input(type='radio', id=f"{numero}-{i}", name=id, value=i, aria_invalid=invalido, checked=actual),
+                      Icono(imagen), _for=f"{numero}-{i}"),
+                      cls='grilla')
     
     def MostrarOpcion():
         return Label(Input(type='radio', id=f"{numero}-{i}", name=id, value=i, aria_invalid=invalido, checked=actual), 
@@ -135,12 +147,19 @@ def simular_eleccion():
     preguntas['preguntas'][2]['eleccion'] = 2 
     preguntas['preguntas'][3]['eleccion'] = 3
 
+def EnviarRespuesta(mensaje="",parcial=False):
+    return Div(
+        Span(mensaje, id='mensaje'),
+        Button("Completar Exámen" if parcial else 'Evaluar Exámen', hx_post="/evaluar", hx_target="#main",  hx_swap="innerHTML"), 
+        id='enviar'
+    ) 
+
 @rt('/')
 async def get(): 
     examenes = cargar_examenes()
     return Div(
             Header( 
-                H1('Elegir Examen v 0.4')
+                H1(f'Elegir Exámen v {Version}')
             ),
             Main( 
                 *[TipoExamen(examen) for examen in examenes]
@@ -149,12 +168,19 @@ async def get():
             id='pagina'
         )
 
-def EnviarRespuesta(mensaje="",parcial=False):
-    return Div(
-        Span(mensaje, id='mensaje'),
-        Button("Completar Exámen" if parcial else 'Evaluar Exámen', hx_post="/evaluar", hx_target="#main",  hx_swap="innerHTML"), 
-        id='enviar'
-    ) 
+
+@rt('/estadisticas')
+async def get():
+    examenes = cargar_examenes()
+    print(examenes)
+    return (
+        Header(H1('Estadísticas')),
+        Main(
+            H2('Estadísticas'),
+            Div(f"Hay {len(examenes)} preguntas"),
+            Button("Volver al inicio" , hx_get="/"), 
+        ),
+    )
 
 @rt('/examen/{examen}')
 async def get(examen: str):    
@@ -166,7 +192,7 @@ async def get(examen: str):
     return (
         Div(
             Header(
-                H1(preguntas['examen']), 
+                H1(preguntas['examen'] + f'v {Version}'), 
                 H6(preguntas['descripcion']),
                 id='titulo'
             ),
@@ -178,7 +204,6 @@ async def get(examen: str):
                 ),
                 id='main'
             ),
-            Footer("Pie"),
             cls='container',
             id='pagina'
         )
@@ -215,9 +240,8 @@ async def post():
         Main(
             H2('Resultado'),
             P(f"Hay {correctas} respuestas correctas de {cantidad}"),
-            EnviarRespuesta('Volver a intentar'),
+            Button("Volver al inicio" , hx_get="/", hx_target="#main",  hx_swap="innerHTML"), 
         ),
-        Footer('Pie')
     )
 
 serve()
