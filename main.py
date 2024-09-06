@@ -2,12 +2,14 @@ import random
 import json
 from fasthtml.common import *
 from fasthtml.components import *
-# from fastapi.middleware.cors import CORSMiddleware
+import logging
 
-Version = '0.5'
+Version = '0.5.2'
 Base = 'demo'
 OrigenExamenes = f'{Base}/examenes.json'
 OrigenIconos   = f'/{Base}/iconos'
+
+logger = logging.getLogger('app')
 
 def leer_json(ruta):
     with open(ruta, 'r', encoding='utf-8') as f:
@@ -23,7 +25,8 @@ def generar_examen(examen):
     """ Genera un examen a partir de la configuración """
 
     def traer_preguntas(tipo):
-        return [p['preguntas'] for p in preguntas if p["tipo"] == tipo][0]
+        lista = [p['preguntas'] for p in preguntas if p["tipo"] == tipo]
+        return lista[0] if lista else None 
 
     def traer_examen(nombre):
         nombre = nombre.strip().upper()
@@ -42,8 +45,9 @@ def generar_examen(examen):
     for o in opciones:
         tipo, cantidad = o["tipo"], o["cantidad"]
         seleccion = traer_preguntas(tipo)
-        seleccion = random.sample(seleccion, cantidad)
-        salida.extend(seleccion)
+        if seleccion: 
+            seleccion = random.sample(seleccion, cantidad)
+            salida.extend(seleccion)
     
     for i, pregunta in enumerate(salida):
         pregunta['numero'] = i+1
@@ -110,14 +114,12 @@ def TipoExamen(tipo):
 
 def MostrarRespuesta(numero, id, i, respuesta, eleccion, correcta):
     def MostrarImagen(imagen):
-        return Div( 
-                Label(Input(type='radio', id=f"{numero}-{i}", name=id, value=i, aria_invalid=invalido, checked=actual),
-                      Icono(imagen), _for=f"{numero}-{i}"),
-                      cls='grilla')
+        return  Label(Input(type='radio', id=f"{numero}-{i}", name=id, value=i, aria_invalid=invalido, checked=actual),
+                    Icono(imagen), _for=f"{numero}-{i}")
     
     def MostrarOpcion():
         return Label(Input(type='radio', id=f"{numero}-{i}", name=id, value=i, aria_invalid=invalido, checked=actual), 
-                     respuesta, _for=f"{numero}-{i}")
+                    respuesta, _for=f"{numero}-{i}")
 
     actual = (eleccion == i)
     invalido = None
@@ -137,7 +139,7 @@ def aplicar_eleccion(datos):
     
     for pregunta in preguntas['preguntas']:
         id = str(pregunta['id'])
-        if id in datos:
+        if str(id) in datos:
             pregunta['eleccion'] = int(datos[id])
         elif pregunta['eleccion'] == 0: 
             pregunta['eleccion'] = random.randint(0, 4)
@@ -174,7 +176,6 @@ async def get():
 @rt('/estadisticas')
 async def get():
     examenes = cargar_examenes()
-    print(examenes)
     return (
         Header(H1('Estadísticas')),
         Main(
@@ -216,9 +217,11 @@ async def get(examen: str):
 async def post(datos: dict):
     global preguntas
 
+    logger.info(f"Estoy en evaluar")
+
     aplicar_eleccion(datos)
 
-    print('Datos : ', datos)
+    logger.info(f"Datos : {datos}")
     
     falta = sum(1 for pregunta in preguntas['preguntas'] if pregunta['eleccion'] == 0)
     if falta == 0:
