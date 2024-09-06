@@ -67,32 +67,14 @@ section {	/* pregunta */
             input { margin-right: 10px; }
         }
         
-        
         img {
-            max-width: 120px;
-            max-height: 120px;
+            max-width: 80px;
+            max-height: 80px;
             margin-right: 0px;
         }
 	}
 }
 
-
-.grilla {
-	display: grid;
-	grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); /* Controla el tamaño mínimo de los ítems y se adapta al ancho */
-	gap: 10px; /* Espacio entre los elementos */
-	padding: 10px;
-  }
-  
-  .grilla label {
-	display: flex;
-	flex-direction: column;
-	align-items: center;
-  }
-  
-  .grilla img {
-	max-width: 100%;
-	height: auto;
-	border: 2px solid #ccc;
-	border-radius: 8px;
-  }
+article.contestar {
+	background-color: azure !important;
+}

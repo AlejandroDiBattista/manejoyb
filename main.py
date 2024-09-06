@@ -4,8 +4,9 @@ from fasthtml.common import *
 from fasthtml.components import *
 import logging
 
-Version = '0.5.3'
+Version = '0.5.5'
 Base = 'demo'
+
 OrigenExamenes = f'{Base}/examenes.json'
 OrigenIconos   = f'/{Base}/iconos'
 
@@ -20,6 +21,39 @@ def cargar_examenes():
     lista = leer_json(OrigenExamenes)['configuracion']
     print(f'Lista : {len(lista)}')
     return lista
+
+def traer_preguntas():
+    """ Generar un diccionario con las preguntas """
+
+    preguntas = leer_json(OrigenExamenes)['preguntas']
+
+    salida = {}
+    for tipo in preguntas:
+        for pregunta in tipo['preguntas']:
+            salida[str(pregunta['id'])] = pregunta
+    return salida
+
+def cargar_preguntas(lista, elecciones):
+    """ 
+    Carga las preguntas a partir de los identificadores 
+    y las elecciones del usuario y las enumera
+    """
+
+    preguntas = traer_preguntas()
+    salida = []
+    for i, id in enumerate(lista):
+        id = str(id)
+        pregunta = preguntas[id]
+        if pregunta:
+            pregunta['numero'] = i + 1
+            pregunta['eleccion'] = int(elecciones[id]) if id in elecciones else 0
+            salida.append(pregunta)
+
+    if len(lista) != len(salida):
+        print('*'*80)
+        print("ERROR: No se encontraron todas las preguntas")
+
+    return salida
 
 def generar_examen(examen):
     """ Genera un examen a partir de la configuración """
@@ -64,26 +98,18 @@ app, rt = fast_app(pico=True, hdrs=(
 
 rt = app.route
 
-# app.add_middleware(
-#     CORSMiddleware,
-#     allow_origins=["*"],  # Cambia esto según tus necesidades de seguridad
-#     allow_credentials=True,
-#     allow_methods=["*"],
-#     allow_headers=["*"],
-# )
-
 def Icono(nombre):
     return Img(src=f"{OrigenIconos}/{nombre}.png", cls="imagen")
 
 def MostrarEstado(preguntas):
-    cantidad = len(preguntas['preguntas'])
-    respondidas = sum(1 for pregunta in preguntas['preguntas'] if pregunta['eleccion'] > 0)
+    cantidad = len(preguntas)
+    respondidas = sum(1 for pregunta in preguntas if pregunta['eleccion'] > 0)
     return Span(f"Hay {respondidas} preguntas respondidas de {cantidad}", id="estado")
 
-def MostrarPreguntas(preguntas, pedientes=False):
-    return (MostrarPregunta(pregunta) for pregunta in preguntas['preguntas'] if not pedientes or pregunta['eleccion'] == 0)
+def MostrarPreguntas(preguntas, pendientes=False):
+    return (MostrarPregunta(pregunta, pendientes) for pregunta in preguntas)# if not pendientes or pregunta['eleccion'] == 0)
 
-def MostrarPregunta(pregunta):
+def MostrarPregunta(pregunta, pendientes=False):
     id = pregunta['id']
     numero = pregunta['numero']
     eleccion = pregunta['eleccion']
@@ -95,9 +121,9 @@ def MostrarPregunta(pregunta):
     return Card(
         Fieldset(
             Legend(I(numero), H4(pregunta['pregunta']), pregunta['correcta'], Small(f"{id:03}")),
-            *[MostrarRespuesta(numero, id, i+1, respuesta, eleccion, correcta) for i, respuesta in enumerate(pregunta['respuestas'])] )
+            *[MostrarRespuesta(numero, id, i+1, respuesta, eleccion, correcta) for i, respuesta in enumerate(pregunta['respuestas'])] 
+        ), cls = 'contestar' if pendientes and eleccion == 0 else None
     )
-
 
 def TipoExamen(tipo):
     def IrExamen(examen):
@@ -114,12 +140,18 @@ def TipoExamen(tipo):
 
 def MostrarRespuesta(numero, id, i, respuesta, eleccion, correcta):
     def MostrarImagen(imagen):
-        return  Label(Input(type='radio', id=f"{numero}-{i}", name=id, value=i, aria_invalid=invalido, checked=actual),
-                    Icono(imagen), _for=f"{numero}-{i}")
+        return  Label(
+                    Input(type='radio', id=f"{numero}-{i}", name=id, value=i, aria_invalid=invalido, checked=actual),
+                    Icono(imagen),
+                    _for=f"{numero}-{i}", cls='horizontal'
+                )
     
     def MostrarOpcion():
-        return Label(Input(type='radio', id=f"{numero}-{i}", name=id, value=i, aria_invalid=invalido, checked=actual), 
-                    respuesta, _for=f"{numero}-{i}")
+        return Label(
+                Input(type='radio', id=f"{numero}-{i}", name=id, value=i, aria_invalid=invalido, checked=actual), 
+                respuesta, 
+                _for=f"{numero}-{i}", cls='vertical'
+            )
 
     actual = (eleccion == i)
     invalido = None
@@ -127,33 +159,23 @@ def MostrarRespuesta(numero, id, i, respuesta, eleccion, correcta):
         invalido = 'false' if i == correcta else 'true'
 
     m = re.match(r'<(\d{3})>', respuesta)
-    if m :
-        return MostrarImagen(m.group(1))
-    else:
-        return MostrarOpcion()
+    return MostrarImagen(m.group(1)) if m else MostrarOpcion()
 
-preguntas = []
-
-def aplicar_eleccion(datos):
-    global preguntas
-
-    print(f"Datos : {datos}")
-    print(f"Preguntas : {preguntas}")
-    print(f"Tipo : {type(preguntas)} , {len(preguntas)}")
-    
-    for pregunta in preguntas['preguntas']:
+def aplicar_eleccion(preguntas, datos):    
+    for pregunta in preguntas:
         id = str(pregunta['id'])
-        if str(id) in datos:
-            pregunta['eleccion'] = int(datos[id])
-        elif pregunta['eleccion'] == 0: 
-            pregunta['eleccion'] = random.randint(0, 4)
+        if id in datos:
+            pregunta['eleccion'] =  int(datos[id]) 
+        else:
+            pregunta['eleccion'] = 0
+
+    print(f"aplicar_eleccion >> Preguntas : ", json.dumps(preguntas[:3], indent=4))
     return preguntas    
 
-def simular_eleccion():
-    global preguntas
-    preguntas['preguntas'][1]['eleccion'] = 1 
-    preguntas['preguntas'][2]['eleccion'] = 2 
-    preguntas['preguntas'][3]['eleccion'] = 3
+def simular_eleccion(preguntas):
+    preguntas[1]['eleccion'] = 1 
+    preguntas[2]['eleccion'] = 2 
+    preguntas[3]['eleccion'] = 3
 
 def EnviarRespuesta(mensaje="",parcial=False):
     return Div(
@@ -165,6 +187,7 @@ def EnviarRespuesta(mensaje="",parcial=False):
 @rt('/')
 async def get(): 
     examenes = cargar_examenes()
+
     return Div(
             Header( 
                 H1(f'Elegir Exámen v {Version}')
@@ -180,6 +203,7 @@ async def get():
 @rt('/estadisticas')
 async def get():
     examenes = cargar_examenes()
+
     return (
         Header(H1('Estadísticas')),
         Main(
@@ -190,17 +214,28 @@ async def get():
     )
 
 @rt('/examen/{examen}')
-async def get(examen: str):    
-    global preguntas
-    preguntas = generar_examen(examen)
+async def get(session, examen: str):    
 
-    simular_eleccion()
+    datos = generar_examen(examen)
+    examen, descripcion, preguntas = datos['examen'], datos['descripcion'], datos['preguntas']
+    
+    print('='*80)
+    print(json.dumps(preguntas[:3], indent=4))
+
+    for i, pregunta in enumerate(preguntas): 
+        pregunta['numero'] = i + 1
+        pregunta['eleccion'] = 0
+        
+    simular_eleccion(preguntas)
+
+    session['preguntas'] = [pregunta['id'] for pregunta in preguntas]
+    print(f"Preguntas : {session['preguntas']}")
 
     return (
         Div(
             Header(
-                H1(preguntas['examen'] + f'v {Version}'), 
-                H6(preguntas['descripcion']),
+                H1(examen + f'v {Version}'), 
+                H6(descripcion),
                 id='titulo'
             ),
             Main(
@@ -218,37 +253,51 @@ async def get(examen: str):
 
 
 @rt('/evaluar')
-async def post(datos: dict):
-    global preguntas
+async def post(session, datos: dict):
 
-    logger.info(f"Estoy en evaluar")
+    ids = session['preguntas']
 
-    aplicar_eleccion(datos)
+    preguntas = cargar_preguntas(ids, datos)
 
-    logger.info(f"Datos : {datos}")
+    print(f"Datos: ", datos)
+    print(f"Evaluar >> Session   : {sorted(session['preguntas'][:10])}")
+    print(f"Evaluar >> Preguntas : {sorted([pregunta['id'] for pregunta in preguntas][:10])}")
+    print(f"Preguntas (A):", json.dumps(preguntas[:3], indent=4))
     
-    falta = sum(1 for pregunta in preguntas['preguntas'] if pregunta['eleccion'] == 0)
+    preguntas = aplicar_eleccion(preguntas, datos)
+    contestadas = [pregunta for pregunta in preguntas if pregunta['eleccion'] > 0]
+    print(f"Preguntas (D):", json.dumps(contestadas[:10], indent=4))
+
+    falta = len(preguntas) - len(contestadas)
+
     if falta == 0:
+        session['respuestas'] = datos 
         return RedirectResponse(url="/resultado")
 
     return (
         MostrarEstado(preguntas),
         Form(
-            * MostrarPreguntas(preguntas, pedientes=True),
+            * MostrarPreguntas(preguntas, pendientes=True),
             EnviarRespuesta((f'Falta responder {falta} pregunta{'s' if falta else ''}'), parcial=True),
         )
     )    
 
 @rt('/resultado')
-async def post():
-    global preguntas
-    cantidad = len(preguntas['preguntas'])
-    correctas = sum(1 for pregunta in preguntas['preguntas'] if pregunta['eleccion'] == pregunta['correcta'].index('x') + 1)
+async def post(session):
+    preguntas = session['preguntas']
+    respuestas = session['respuestas']
+
+    preguntas = cargar_preguntas(preguntas, respuestas)
+
+    cantidad = len(preguntas)
+    correctas = sum(1 for pregunta in preguntas if pregunta['eleccion'] == pregunta['correcta'].index('x') + 1)
+
+    resultado = 'Aprobado' if correctas >= cantidad * 0.9 else 'Reprobado'
     return (
         Header(H1('Resultado')),
         Main(
-            H2('Resultado'),
             P(f"Hay {correctas} respuestas correctas de {cantidad}"),
+            H2(f'El examen está: {resultado}'),
             Button("Volver al inicio" , hx_get="/", hx_target="#main",  hx_swap="innerHTML"), 
         ),
     )
