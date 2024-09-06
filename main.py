@@ -4,7 +4,7 @@ from fasthtml.common import *
 from fasthtml.components import *
 import logging
 
-Version = '0.5.2'
+Version = '0.5.3'
 Base = 'demo'
 OrigenExamenes = f'{Base}/examenes.json'
 OrigenIconos   = f'/{Base}/iconos'
