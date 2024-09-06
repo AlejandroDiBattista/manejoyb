@@ -136,6 +136,10 @@ preguntas = []
 
 def aplicar_eleccion(datos):
     global preguntas
+
+    print(f"Datos : {datos}")
+    print(f"Preguntas : {preguntas}")
+    print(f"Tipo : {type(preguntas)} , {len(preguntas)}")
     
     for pregunta in preguntas['preguntas']:
         id = str(pregunta['id'])
