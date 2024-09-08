@@ -1,99 +1,11 @@
-import random
-import json
 from fasthtml.common import *
 from fasthtml.components import *
-import logging
+from examen import *
 
-Version = '0.5.5'
-Base = 'demo'
+Version = '0.6.0'
 
-OrigenExamenes = f'{Base}/examenes.json'
-OrigenIconos   = f'/{Base}/iconos'
-
-logger = logging.getLogger('app')
-
-def leer_json(ruta):
-    with open(ruta, 'r', encoding='utf-8') as f:
-        return json.load(f) 
-    
-def cargar_examenes():
-    """ Carga los examenes a partir de la configuración """
-    lista = leer_json(OrigenExamenes)['configuracion']
-    print(f'Lista : {len(lista)}')
-    return lista
-
-def traer_preguntas():
-    """ Generar un diccionario con las preguntas """
-
-    preguntas = leer_json(OrigenExamenes)['preguntas']
-
-    salida = {}
-    for tipo in preguntas:
-        for pregunta in tipo['preguntas']:
-            salida[str(pregunta['id'])] = pregunta
-    return salida
-
-def cargar_preguntas(lista, elecciones):
-    """ 
-    Carga las preguntas a partir de los identificadores 
-    y las elecciones del usuario y las enumera
-    """
-
-    preguntas = traer_preguntas()
-    salida = []
-    for i, id in enumerate(lista):
-        id = str(id)
-        pregunta = preguntas[id]
-        if pregunta:
-            pregunta['numero'] = i + 1
-            pregunta['eleccion'] = int(elecciones[id]) if id in elecciones else 0
-            salida.append(pregunta)
-
-    if len(lista) != len(salida):
-        print('*'*80)
-        print("ERROR: No se encontraron todas las preguntas")
-
-    return salida
-
-def generar_examen(examen):
-    """ Genera un examen a partir de la configuración """
-
-    def traer_preguntas(tipo):
-        lista = [p['preguntas'] for p in preguntas if p["tipo"] == tipo]
-        return lista[0] if lista else None 
-
-    def traer_examen(nombre):
-        nombre = nombre.strip().upper()
-        for c in configuracion:
-            for e in c["examenes"]:
-                if nombre == e["nombre"].upper():
-                    return (e['nombre'], e['descripcion'], e['opciones'])
-        return []
-
-    examenes = leer_json(OrigenExamenes)
-    preguntas, configuracion = examenes["preguntas"], examenes["configuracion"]
-    
-    nombre, descripcion, opciones = traer_examen(examen)
-    
-    salida = []
-    for o in opciones:
-        tipo, cantidad = o["tipo"], o["cantidad"]
-        seleccion = traer_preguntas(tipo)
-        if seleccion: 
-            seleccion = random.sample(seleccion, cantidad)
-            salida.extend(seleccion)
-    
-    for i, pregunta in enumerate(salida):
-        pregunta['numero'] = i+1
-        pregunta['eleccion'] = 0
-    
-    # mostrar_examen(nombre, descripcion, salida)
-    return {"examen": examen, "nombre": nombre, "descripcion": descripcion, "preguntas": salida}
-
-################################################################################
-
-app, rt = fast_app(pico=True, hdrs=(
-    Link(rel='stylesheet', href='/demo/estilo.css', type='text/css'),
+app, rt = fast_app(pico=False, hdrs=(
+    Link(rel='stylesheet', href='demo/estilo.css', type='text/css'),
 ))
 
 rt = app.route
@@ -161,17 +73,6 @@ def MostrarRespuesta(numero, id, i, respuesta, eleccion, correcta):
     m = re.match(r'<(\d{3})>', respuesta)
     return MostrarImagen(m.group(1)) if m else MostrarOpcion()
 
-def aplicar_eleccion(preguntas, datos):    
-    for pregunta in preguntas:
-        id = str(pregunta['id'])
-        if id in datos:
-            pregunta['eleccion'] =  int(datos[id]) 
-        else:
-            pregunta['eleccion'] = 0
-
-    print(f"aplicar_eleccion >> Preguntas : ", json.dumps(preguntas[:3], indent=4))
-    return preguntas    
-
 def simular_eleccion(preguntas):
     preguntas[1]['eleccion'] = 1 
     preguntas[2]['eleccion'] = 2 
@@ -184,47 +85,24 @@ def EnviarRespuesta(mensaje="",parcial=False):
         id='enviar'
     ) 
 
+def Layout(*args, **kwargs):
+    return Div(*args, id='pagina', cls='container', **kwargs)
+
 @rt('/')
 async def get(): 
     examenes = cargar_examenes()
 
-    return Div(
-            Header( 
-                H1(f'Elegir Exámen v {Version}')
-            ),
-            Main( 
-                *[TipoExamen(examen) for examen in examenes]
-            ),
+    return Layout(
+            Header( H1(f'Elegir Exámen v {Version}')),
+            Main( *[TipoExamen(examen) for examen in examenes]),
             Footer("Pie 2"),
-            id='pagina'
         )
-
-
-@rt('/estadisticas')
-async def get():
-    examenes = cargar_examenes()
-
-    return (
-        Header(H1('Estadísticas')),
-        Main(
-            H2('Estadísticas'),
-            Div(f"Hay {len(examenes)} preguntas"),
-            Button("Volver al inicio" , hx_get="/"), 
-        ),
-    )
 
 @rt('/examen/{examen}')
 async def get(session, examen: str):    
 
     datos = generar_examen(examen)
     examen, descripcion, preguntas = datos['examen'], datos['descripcion'], datos['preguntas']
-    
-    print('='*80)
-    print(json.dumps(preguntas[:3], indent=4))
-
-    for i, pregunta in enumerate(preguntas): 
-        pregunta['numero'] = i + 1
-        pregunta['eleccion'] = 0
         
     simular_eleccion(preguntas)
 
@@ -232,7 +110,7 @@ async def get(session, examen: str):
     print(f"Preguntas : {session['preguntas']}")
 
     return (
-        Div(
+        Layout(
             Header(
                 H1(examen + f'v {Version}'), 
                 H6(descripcion),
@@ -246,8 +124,6 @@ async def get(session, examen: str):
                 ),
                 id='main'
             ),
-            cls='container',
-            id='pagina'
         )
     )
 
@@ -257,16 +133,9 @@ async def post(session, datos: dict):
 
     ids = session['preguntas']
 
-    preguntas = cargar_preguntas(ids, datos)
-
-    print(f"Datos: ", datos)
-    print(f"Evaluar >> Session   : {sorted(session['preguntas'][:10])}")
-    print(f"Evaluar >> Preguntas : {sorted([pregunta['id'] for pregunta in preguntas][:10])}")
-    print(f"Preguntas (A):", json.dumps(preguntas[:3], indent=4))
+    preguntas = cargar_preguntas(ids, datos)    
     
-    preguntas = aplicar_eleccion(preguntas, datos)
     contestadas = [pregunta for pregunta in preguntas if pregunta['eleccion'] > 0]
-    print(f"Preguntas (D):", json.dumps(contestadas[:10], indent=4))
 
     falta = len(preguntas) - len(contestadas)
 
@@ -275,10 +144,12 @@ async def post(session, datos: dict):
         return RedirectResponse(url="/resultado")
 
     return (
+        Layout(
         MostrarEstado(preguntas),
         Form(
             * MostrarPreguntas(preguntas, pendientes=True),
             EnviarRespuesta((f'Falta responder {falta} pregunta{'s' if falta else ''}'), parcial=True),
+        )
         )
     )    
 
@@ -293,12 +164,26 @@ async def post(session):
     correctas = sum(1 for pregunta in preguntas if pregunta['eleccion'] == pregunta['correcta'].index('x') + 1)
 
     resultado = 'Aprobado' if correctas >= cantidad * 0.9 else 'Reprobado'
-    return (
+    return Layout(
         Header(H1('Resultado')),
         Main(
             P(f"Hay {correctas} respuestas correctas de {cantidad}"),
             H2(f'El examen está: {resultado}'),
             Button("Volver al inicio" , hx_get="/", hx_target="#main",  hx_swap="innerHTML"), 
+        ),
+    )
+
+
+@rt('/estadisticas')
+async def get():
+    examenes = cargar_examenes()
+
+    return Layout(
+        Header(H1('Estadísticas')),
+        Main(
+            H2('Estadísticas'),
+            Div(f"Hay {len(examenes)} preguntas"),
+            Button("Volver al inicio" , hx_get="/"), 
         ),
     )
 
