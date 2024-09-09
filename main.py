@@ -2,7 +2,7 @@ from fasthtml.common import *
 from fasthtml.components import *
 from examen import *
 
-Version = '0.6.0'
+Version = '0.6.1'
 
 app, rt = fast_app(pico=False, hdrs=(
     Link(rel="stylesheet", href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&display=swap"),
