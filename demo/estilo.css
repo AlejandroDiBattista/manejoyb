@@ -228,11 +228,11 @@ body {
 			/* flex: 0 0 30px; */
 			/* Ancho fijo de 30px */
 			text-align: right;
-			font-size: 12px;
+			font-size: 14px;
 			font-weight: lighter;
 			/* background-color: green; */
 			/* Color de fondo azul */
-			color: red;
+			color: blue;
 			/* Color del texto */
 			position: absolute !important;
 			right: 0px;

@@ -2,7 +2,7 @@ from fasthtml.common import *
 from fasthtml.components import *
 from examen import *
 
-Version = '0.6.1'
+Version = '0.6.2'
 
 app, rt = fast_app(pico=False, hdrs=(
     Link(rel="stylesheet", href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&display=swap"),
@@ -34,7 +34,7 @@ def MostrarPregunta(pregunta, pendientes=False):
     horizontal = pregunta['respuestas'][0].startswith('<')
     
     return Card(
-            Small(f"{id:03}", f"{pregunta['correcta']}"),
+            Small(f"{id:03}"), #, f"{pregunta['correcta']}"),
             Fieldset(
                 Legend(I(numero), Span(pregunta['pregunta'])),
                 *[MostrarRespuesta(numero, id, i+1, respuesta, eleccion, correcta) for i, respuesta in enumerate(pregunta['respuestas'])],
@@ -118,7 +118,7 @@ async def get(session, examen: str):
     datos = generar_examen(examen)
     examen, descripcion, preguntas = datos['examen'], datos['descripcion'], datos['preguntas']
         
-    simular_eleccion(preguntas)
+    # simular_eleccion(preguntas)
 
     session['preguntas'] = [pregunta['id'] for pregunta in preguntas]
     print(f"Preguntas : {session['preguntas']}")
