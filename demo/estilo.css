@@ -159,6 +159,7 @@ body {
 						margin-right: 5px;
 						transform: scale(1.5);
 						vertical-align: middle;
+						min-width: 16px;
 					}
 
 					span {
@@ -166,6 +167,7 @@ body {
 					}
 					&.correcta {
 						background-color: rgba(173, 255, 47, 0.2);						
+						border-radius: 10px;
 					}
 				}
 			}
@@ -194,13 +196,16 @@ body {
 
 					&.correcta {
 						background-color: rgba(173, 255, 47, 0.2);
+						border-radius: 10px;
 					}
 
 					input[type="radio"] {
 						display: inline-block;
 						margin-right: 5px;
+						margin-left: 15px;
 						transform: scale(1.5);
 						vertical-align: middle;
+						min-width: 30px;
 					}
 
 					img {
