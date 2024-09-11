@@ -5,7 +5,7 @@ Base = 'demo'
 
 OrigenExamenes = f'{Base}/examenes.json'
 OrigenIconos   = f'/{Base}/iconos'
-
+OrigenLogo     = f'/{Base}/logo-yb.png'
 
 def leer_json(ruta):
     with open(ruta, 'r', encoding='utf-8') as f:
@@ -91,4 +91,4 @@ def generar_examen(examen):
 
     return {"examen": examen, "nombre": nombre, "descripcion": descripcion, "preguntas": salida}
 
-__all__ = ['cargar_examenes', 'generar_examen', 'cargar_preguntas', 'OrigenIconos']
+__all__ = ['cargar_examenes', 'generar_examen', 'cargar_preguntas', 'OrigenIconos', 'OrigenLogo', 'Base']

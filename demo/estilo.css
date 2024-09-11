@@ -36,7 +36,6 @@ body {
 	margin: 0 auto;
 	max-width: 600px;
 	padding: 10px;
-
 }
 
 .menu {
@@ -108,18 +107,17 @@ body {
 					min-width: 30px;
 					height: 30px;
 					border-radius: 25px;
-					/* Forma un círculo */
-					text-align: center;
-					/* line-height: 30px; Centra el texto verticalmente */
-					color: red;
-					/* Color del texto */
+					padding: 4px;
+
+					/* line-height: 32px; */
 					font-size: 14px;
 					font-weight: lighter;
 					text-decoration: none;
 					font-style: normal;
-					/* Evita que el texto se muestre en cursiva */
+					text-align: center;
+					
+					color: red;
 					border: 1px solid red;
-					padding: 4px;
 				}
 
 				span {
@@ -276,4 +274,16 @@ button {
 		text-align: center;
 	}
 
+}
+
+article.oculto {
+	display: none !important;
+}
+
+footer {
+	text-align: center;
+	font-size: 12px;
+	color: #666;
+	padding: 10px;
+	margin-top: 20px;
 }
