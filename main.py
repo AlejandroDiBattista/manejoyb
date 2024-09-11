@@ -2,7 +2,7 @@ from fasthtml.common import *
 from fasthtml.components import *
 from examen import *
 
-Version = '0.6.3'
+Version = '0.7.0'
 
 app, rt = fast_app(pico=False, hdrs=(
     Link(rel="stylesheet", href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&display=swap"),
@@ -76,7 +76,11 @@ def TipoExamen(tipo):
 def MostrarRespuesta(numero, id, i, respuesta, eleccion, correcta):
     def MostrarImagen(imagen):
         return  Label(
-                    Input(type='radio', id=f"{numero}-{i}", name=id, value=i, aria_invalid=invalido, checked=actual),
+                    Input(type='radio', id=f"{numero}-{i}", name=id, value=i, 
+                          aria_invalid=invalido, checked=actual, 
+                          hx_post="/actualizar_estado", 
+                          hx_target="#mensaje", 
+                          hx_include="closest form"),
                     Icono(imagen),
                     _for=f"{numero}-{i}",
                     cls= 'correcta' if i == correcta and en_desarrollo else None
@@ -84,7 +88,11 @@ def MostrarRespuesta(numero, id, i, respuesta, eleccion, correcta):
     
     def MostrarOpcion():
         return Label(
-                    Input(type='radio', id=f"{numero}-{i}", name=id, value=i, aria_invalid=invalido, checked=actual), 
+                    Input(type='radio', id=f"{numero}-{i}", name=id, value=i, 
+                          aria_invalid=invalido, checked=actual, 
+                          hx_post="/actualizar_estado", 
+                          hx_target="#mensaje", 
+                          hx_include="closest form"), 
                     Span(respuesta), 
                     _for=f"{numero}-{i}",
                     cls= 'correcta' if i == correcta  and en_desarrollo else None
@@ -96,7 +104,6 @@ def MostrarRespuesta(numero, id, i, respuesta, eleccion, correcta):
         invalido = 'false' if i == correcta else 'true'
 
     m = re.match(r'<(\d{3})>', respuesta)
-    print('Respuesta : ', respuesta, m, en_desarrollo)
     return MostrarImagen(m.group(1)) if m else MostrarOpcion()
 
 
@@ -111,8 +118,7 @@ def EnviarRespuesta(mensaje="",parcial=False):
         Button("Completar Exámen" if parcial else 'Evaluar Exámen', 
                hx_post="/evaluar", 
                hx_target="#pagina",  
-               hx_swap="outerHTML",
-               hx_on="click: window.scrollTo({top: 0, behavior: 'smooth'})" ), 
+               hx_swap="outerHTML",), 
         id='enviar'
     ) 
 
@@ -123,8 +129,7 @@ def Pie():
     return Footer(f"Dirección de Tránsito de Yerba Buena - Versión { Version} { 'Desarrollo' if en_desarrollo else '' }")
 
 def Layout(titulo, *args, **kwargs):
-    return Titled( Logo(), titulo,  *args,Pie(),id='pagina', **kwargs)
-
+    return Titled( Logo(), titulo,  *args, Pie(),id='pagina', **kwargs)
 
 @rt('/')
 def get(): 
@@ -169,13 +174,14 @@ def post(session, datos: dict):
     if falta == 0:
         session['respuestas'] = datos 
         return RedirectResponse(url="/resultado")
-
+    
+    mensaje = f'Respondiste {len(contestadas)}, falta responder {falta} pregunta{'s' if falta else ''}'
     return (
         Layout(
             # MostrarEstado(preguntas),
             Form(
                 * MostrarPreguntas(preguntas, pendientes=True),
-                EnviarRespuesta((f'Falta responder {falta} pregunta{'s' if falta else ''}'), parcial=True),
+                EnviarRespuesta(mensaje, parcial=True),
             ),
             cls='examen'
         )
@@ -202,6 +208,14 @@ def post(session):
         )
     )
 
+@rt('/actualizar_estado')
+def post(session, datos: dict):
+    preguntas = cargar_preguntas(session['preguntas'], datos)
+
+    respondidas = sum(1 for pregunta in preguntas if pregunta['eleccion'] > 0)
+    total = len(preguntas)
+    
+    return Span(f"Hay {respondidas} preguntas respondidas de {total}", id="estado")
 
 @rt('/estadisticas')
 def get():
