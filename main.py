@@ -2,7 +2,7 @@ from fasthtml.common import *
 from fasthtml.components import *
 from examen import *
 
-Version = '0.7.1'
+Version = '0.7.2'
 
 app, rt = fast_app(pico=False, hdrs=(
     Link(rel="stylesheet", href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&display=swap"),
@@ -107,11 +107,6 @@ def MostrarRespuesta(numero, id, i, respuesta, eleccion, correcta):
     return MostrarImagen(m.group(1)) if m else MostrarOpcion()
 
 
-def simular_eleccion(preguntas,cantidad=3):
-    for pregunta in preguntas[cantidad:]:
-        pregunta['eleccion'] = 1
-
-
 def EnviarRespuesta(mensaje="",parcial=False):
     return Div(
         Span(mensaje, id='mensaje'),
@@ -178,7 +173,6 @@ def post(session, datos: dict):
     mensaje = f'Respondiste {len(contestadas)}, falta responder {falta} pregunta{'s' if falta else ''}'
     return (
         Layout(
-            # MostrarEstado(preguntas),
             Form(
                 * MostrarPreguntas(preguntas, pendientes=True),
                 EnviarRespuesta(mensaje, parcial=True),
@@ -229,6 +223,7 @@ def get():
             ),
         )
     )
+
 
 serve()
 
