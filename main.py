@@ -1,3 +1,4 @@
+import random
 from fasthtml.common import *
 from fasthtml.components import *
 from examen import *
@@ -40,7 +41,7 @@ def MostrarPregunta(pregunta, pendientes=False):
     numero = pregunta['numero']
     eleccion = pregunta['eleccion']
     
-    correcta = pregunta['correcta'].index('x') + 1
+    correcta = pregunta['respuesta']
     if eleccion != 0:
         print('Correcta : ', correcta, "Eleccion : ", eleccion)
     
@@ -54,8 +55,7 @@ def MostrarPregunta(pregunta, pendientes=False):
                 *[MostrarRespuesta(numero, id, i+1, respuesta, eleccion, correcta) for i, respuesta in enumerate(pregunta['respuestas'])],
                 cls = f"{direccion}"
             ),
-            cls=ocultar
-        )
+            cls=ocultar)
 
 
 def TipoExamen(tipo):
@@ -139,7 +139,12 @@ def get():
 def get(session, examen: str, request: Request):    
     cambiar_modo(session, request)
 
-    datos = generar_examen(examen)
+    random.seed()
+
+    semilla = random.randint(1000, 9999)
+
+    datos = generar_examen(examen, semilla)
+    print(datos['preguntas'][0])
     examen, descripcion, preguntas = datos['examen'], datos['descripcion'], datos['preguntas']
         
     session['preguntas'] = [pregunta['id'] for pregunta in preguntas]
@@ -148,7 +153,7 @@ def get(session, examen: str, request: Request):
     print(f"Desarrollador en GET examen/a1: {en_desarrollo}")
     return (
         Layout( 
-            H1(examen),
+            H1(f"{examen} - {datos['id']}"),
             Form(
                 * MostrarPreguntas(preguntas),
                 EnviarRespuesta(), 
@@ -187,16 +192,24 @@ def post(session):
     preguntas = cargar_preguntas(session['preguntas'], session['respuestas'])
 
     cantidad  = len(preguntas)
-    correctas = sum(1 for pregunta in preguntas if pregunta['eleccion'] == pregunta['correcta'].index('x') + 1)
+    correctas = sum(1 for pregunta in preguntas if pregunta['eleccion'] == pregunta['respuesta'])
 
     resultado = 'Aprobado' if correctas >= cantidad * 0.9 else 'Reprobado'
-
+    bien, mal = resumir_examen(preguntas)
     return (
         Layout(
             Header(H1('Resultado')),
             Main(
                 P(f"Hay {correctas} respuestas correctas de {cantidad}"),
                 H2(f'El examen está: {resultado}'),
+                Div(
+                    H4(f'Hay {len(bien)} respuestas correctas'),
+                    *[Span(id) for id in bien],
+                    cls='resumen'),
+                Div(
+                    H4(f'Hay {len(mal)} respuestas incorrectas'),
+                    *[Span(id) for id in mal],
+                    cls='resumen'),
                 Button("Volver al inicio" , hx_get="/", hx_target="#pagina",  hx_swap="innerHTML"), 
             ),
         )
