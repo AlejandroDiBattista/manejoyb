@@ -3,6 +3,7 @@ from fasthtml.common import *
 from fasthtml.components import *
 from examen import *
 
+en_desarrollo = True 
 Version = '0.7.2'
 
 app, rt = fast_app(pico=False, hdrs=(
@@ -12,18 +13,13 @@ app, rt = fast_app(pico=False, hdrs=(
 
 rt = app.route
 
-en_desarrollo = False
-def cambiar_modo(session, request):
-    global en_desarrollo
-
-    desarrollador = request.query_params.get('d', None)
-    if desarrollador:
-        session['desarrollador'] = desarrollador
-            
-    en_desarrollo = bool(int( session.get('desarrollador', 0)))
-    print(f'Cambiar modo: \n  params : {request.query_params} \n  session: {session.get("desarrollador")} \n  global : {en_desarrollo}')
-
-    print(f"Desarrollador : {en_desarrollo} ({request.query_params})")
+# @app.middleware("before")
+# def revisar_modo(request, session):
+#     global en_desarrollo
+    
+#     if 'd' in request.query_params:
+#         es_desarrollo = request.query_params['d'] != '0'
+#         session['en_desarrollo'] = es_desarrollo
     
 def Icono(nombre):
     return Img(src=f"{OrigenIconos}/{nombre}.png", cls="imagen")
@@ -74,6 +70,7 @@ def TipoExamen(tipo):
 
 
 def MostrarRespuesta(numero, id, i, respuesta, eleccion, correcta):
+    global en_desarrollo
     def MostrarImagen(imagen):
         return  Label(
                     Input(type='radio', id=f"{numero}-{i}", name=id, value=i, 
@@ -121,26 +118,30 @@ def Logo():
     return A(Img(src=f"{OrigenLogo}"), href="/")
 
 def Pie():
-    return Footer(f"Dirección de Tránsito de Yerba Buena - Versión { Version} { 'Desarrollo' if en_desarrollo else '' }")
+    global es_desarrollo
+
+    mensaje = "Desarrollador" if en_desarrollo else "Producción"
+    return Footer(f"Dirección de Tránsito de Yerba Buena - Versión {Version} - Modo {mensaje}")
 
 def Layout(titulo, *args, **kwargs):
     return Titled( Logo(), titulo,  *args, Pie(),id='pagina', **kwargs)
 
 @rt('/')
 def get(): 
-    examenes = cargar_examenes()
+    global en_desarrollo
 
+    mensaje = "Desarrollador" if en_desarrollo else "Producción"
+    examenes = cargar_examenes()
     return  Layout( "Elegir Exámen",
                 *[TipoExamen(examen) for examen in examenes],
-                cls='menu'
-            )
+                A(f"🚩 Poner modo {mensaje}", href="/?d=1" if not en_desarrollo else "/?d=0", hx_post="/cambiar-modo", hx_target="#status", hx_swap="outerHTML"),
+                cls='menu')
 
 @rt('/examen/{examen}')
 def get(session, examen: str, request: Request):    
-    cambiar_modo(session, request)
+    global en_desarrollo
 
     random.seed()
-
     semilla = random.randint(1000, 9999)
 
     datos = generar_examen(examen, semilla)
@@ -149,7 +150,6 @@ def get(session, examen: str, request: Request):
         
     session['preguntas'] = [pregunta['id'] for pregunta in preguntas]
     print(f"Preguntas : {session['preguntas']}")
-    global en_desarrollo
     print(f"Desarrollador en GET examen/a1: {en_desarrollo}")
     return (
         Layout( 
@@ -219,10 +219,10 @@ def post(session):
 def post(session, datos: dict):
     preguntas = cargar_preguntas(session['preguntas'], datos)
 
+    cantidad = len(preguntas)
     respondidas = sum(1 for pregunta in preguntas if pregunta['eleccion'] > 0)
-    total = len(preguntas)
     
-    return Span(f"Hay {respondidas} preguntas respondidas de {total}", id="estado")
+    return Span(f"Hay {respondidas} preguntas respondidas de {cantidad}", id="estado")
 
 @rt('/estadisticas')
 def get():
@@ -237,6 +237,23 @@ def get():
         )
     )
 
+@rt("/cambiar-modo")
+def post(req, session):
+    global en_desarrollo
+
+    en_desarrollo = session.get('en_desarrollo', False)
+    session['en_desarrollo'] = not en_desarrollo
+    
+    print(f"Desarrollador : {en_desarrollo} ({req.query_params})")
+    return P(id="status", content=f"El modo desarrollador está {'activado' if en_desarrollo else 'desactivado'}")
+
+
+def info(n, base='pregunta'):
+    if n == 0:
+        return f'No hay {base}s'
+    elif n == 1:
+        return f'Hay 1 {base}'
+    else:
+        return f'Hay {n} {base}s'
 
 serve()
-
