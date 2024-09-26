@@ -13,16 +13,13 @@ def leer_json(ruta):
     
 def cargar_examenes():
     """ Carga los examenes a partir de la configuración """
-
     lista = leer_json(OrigenExamenes)['configuracion']
     return lista
 
 
 def traer_preguntas():
     """ Generar un diccionario con las preguntas """
-
     preguntas = leer_json(OrigenExamenes)['preguntas']
-
     salida = {}
     for tipo in preguntas:
         for pregunta in tipo['preguntas']:
@@ -37,7 +34,6 @@ def cargar_preguntas(lista, elecciones):
     Carga las preguntas a partir de los identificadores 
     y las elecciones del usuario y las enumera
     """
-
     preguntas = traer_preguntas()
     salida = []
     for i, id in enumerate(lista):
@@ -46,6 +42,7 @@ def cargar_preguntas(lista, elecciones):
         if pregunta:
             pregunta['numero'] = i + 1
             pregunta['eleccion'] = int(elecciones[id]) if id in elecciones else 0
+            pregunta['imagen'] = pregunta['respuestas'][0].startswith('<')
             salida.append(pregunta)
 
     if len(lista) != len(salida):

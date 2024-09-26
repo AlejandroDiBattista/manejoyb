@@ -512,35 +512,35 @@
           "opciones": [
             {
               "tipo": 1,
-              "cantidad": 2
+              "cantidad": 1
             },
             {
               "tipo": 2,
-              "cantidad": 2
+              "cantidad": 1
             },
             {
               "tipo": 3,
-              "cantidad": 2
+              "cantidad": 1
             },
             {
               "tipo": 4,
-              "cantidad": 2
+              "cantidad": 1
             },
             {
               "tipo": 5,
-              "cantidad": 2
+              "cantidad": 1
             },
             {
               "tipo": 6,
-              "cantidad": 2
+              "cantidad": 1
             },
             {
               "tipo": 7,
-              "cantidad": 2
+              "cantidad": 1
             },
             {
               "tipo": 8,
-              "cantidad": 2
+              "cantidad": 1
             }
           ]
         }

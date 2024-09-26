@@ -2,6 +2,7 @@ import random
 from fasthtml.common import *
 from fasthtml.components import *
 from examen import *
+import json
 
 en_desarrollo = True 
 Version = '0.8.2'
@@ -29,8 +30,34 @@ def MostrarEstado(preguntas):
     respondidas = sum(1 for pregunta in preguntas if pregunta['eleccion'] > 0)
     return Span(f"Hay {respondidas} preguntas respondidas de {cantidad}", id="estado")
 
+
 def MostrarPreguntas(preguntas, pendientes=False):
     return (MostrarPregunta(pregunta, pendientes) for pregunta in preguntas)
+
+
+def MostrarFeedback(pregunta):
+    id = pregunta['id']
+    numero = pregunta['numero']
+
+    eleccion = pregunta['eleccion']
+    correcta = pregunta['respuesta']
+
+    textoEleccion = pregunta['respuestas'][eleccion-1]
+    textoCorrecta = pregunta['respuestas'][correcta-1]
+    return Card(
+            Small(f"{id:03}"), #, f"{pregunta['correcta']}"),
+            Fieldset(
+                Legend(I(numero), Span(pregunta['pregunta'])),
+                Div(
+                    Div('Respondió:'),
+                    Div(OpcionRespuesta(textoEleccion),cls='eleccion-mal'),
+                cls='feedback'),
+                Div(    
+                    Div('La respuesta correcta es:'),
+                    Div(OpcionRespuesta(textoCorrecta), cls='eleccion-bien'),
+                cls='feedback'),
+            ))
+   
 
 def MostrarPregunta(pregunta, pendientes=False):
     id = pregunta['id']
@@ -39,7 +66,7 @@ def MostrarPregunta(pregunta, pendientes=False):
     
     correcta = pregunta['respuesta']
     if eleccion != 0:
-        print('Correcta : ', correcta, "Eleccion : ", eleccion)
+        print('Correcta : ', correcta, "Elección : ", eleccion)
     
     direccion = "horizontal" if  pregunta['respuestas'][0].startswith('<') else "vertical"
 
@@ -69,39 +96,32 @@ def TipoExamen(tipo):
     )
 
 
+def OpcionRespuesta(respuesta):
+    m = re.match(r'<(\d{3})>', respuesta)
+    return Icono(m.group(1)) if m else Span(respuesta) 
+
 def MostrarRespuesta(numero, id, i, respuesta, eleccion, correcta):
     global en_desarrollo
-    def MostrarImagen(imagen):
-        return  Label(
-                    Input(type='radio', id=f"{numero}-{i}", name=id, value=i, 
-                          aria_invalid=invalido, checked=actual, 
-                          hx_post="/actualizar_estado", 
-                          hx_target="#mensaje", 
-                          hx_include="closest form"),
-                    Icono(imagen),
-                    _for=f"{numero}-{i}",
-                    cls= 'correcta' if i == correcta and en_desarrollo else None
-                )
-    
-    def MostrarOpcion():
-        return Label(
-                    Input(type='radio', id=f"{numero}-{i}", name=id, value=i, 
-                          aria_invalid=invalido, checked=actual, 
-                          hx_post="/actualizar_estado", 
-                          hx_target="#mensaje", 
-                          hx_include="closest form"), 
-                    Span(respuesta), 
-                    _for=f"{numero}-{i}",
-                    cls= 'correcta' if i == correcta  and en_desarrollo else None
-                )
 
     actual = (eleccion == i)
     invalido = None
     if actual:
         invalido = 'false' if i == correcta else 'true'
 
-    m = re.match(r'<(\d{3})>', respuesta)
-    return MostrarImagen(m.group(1)) if m else MostrarOpcion()
+    clase = None
+    if en_desarrollo:
+        clase = 'correcta' if i == correcta and en_desarrollo else 'erronea'
+
+    return  Label(
+                    Input(type='radio', id=f"{numero}-{i}", name=id, value=i, 
+                          aria_invalid=invalido, checked=actual, 
+                          hx_post="/actualizar_estado", 
+                          hx_target="#mensaje", 
+                          hx_include="closest form",
+                          cls=clase), 
+                        OpcionRespuesta(respuesta),
+                    _for=f"{numero}-{i}"
+                )
 
 
 def EnviarRespuesta(mensaje="",parcial=False):
@@ -117,11 +137,13 @@ def EnviarRespuesta(mensaje="",parcial=False):
 def Logo():
     return A(Img(src=f"{OrigenLogo}"), href="/")
 
-def Pie():
-    global es_desarrollo
+def MostrarModo():
+    global en_desarrollo
+    mensaje = "🚩 En Desarrollo" if en_desarrollo else "🏁 En Producción"
+    return A(mensaje, href="#", hx_post="/cambiar-modo", hx_target="#status", hx_swap="outerHTML", id="status")
 
-    mensaje = "Desarrollador" if en_desarrollo else "Producción"
-    return Footer(f"Dirección de Tránsito de Yerba Buena - Versión {Version} - Modo {mensaje}")
+def Pie():
+    return Footer(f"Dirección de Tránsito de Yerba Buena - Versión {Version}")
 
 def Layout(titulo, *args, **kwargs):
     return Titled( Logo(), titulo,  *args, Pie(),id='pagina', **kwargs)
@@ -134,7 +156,7 @@ def get():
     examenes = cargar_examenes()
     return  Layout( "Elegir Exámen",
                 *[TipoExamen(examen) for examen in examenes],
-                A(f"🚩 Poner modo {mensaje}", href="/?d=1" if not en_desarrollo else "/?d=0", hx_post="/cambiar-modo", hx_target="#status", hx_swap="outerHTML"),
+                MostrarModo(),
                 cls='menu')
 
 @rt('/examen/{examen}')
@@ -186,32 +208,44 @@ def post(session, datos: dict):
         )
     )    
 
+def resumir_examen(preguntas):
+    correctas = [pregunta['id'] for pregunta in preguntas if pregunta['eleccion'] == pregunta['respuesta']]
+    erroneas  = [pregunta['id'] for pregunta in preguntas if pregunta['eleccion'] != pregunta['respuesta']]
+    return correctas, erroneas
 
 @rt('/resultado')
 def post(session):
     preguntas = cargar_preguntas(session['preguntas'], session['respuestas'])
 
+    erroneas  = [pregunta for pregunta in preguntas if pregunta['eleccion'] != pregunta['respuesta']]
+
+    print(json.dumps(erroneas, indent=4))
+
+    bien, mal = resumir_examen(preguntas)
     cantidad  = len(preguntas)
-    correctas = sum(1 for pregunta in preguntas if pregunta['eleccion'] == pregunta['respuesta'])
+    correctas = len(bien)
 
     resultado = 'Aprobado' if correctas >= cantidad * 0.9 else 'Reprobado'
-    bien, mal = resumir_examen(preguntas)
     return (
         Layout(
-            Header(H1('Resultado')),
-            Main(
-                P(f"Hay {correctas} respuestas correctas de {cantidad}"),
-                H2(f'El examen está: {resultado}'),
-                Div(
-                    H4(f'Hay {len(bien)} respuestas correctas'),
-                    *[Span(id) for id in bien],
-                    cls='resumen'),
-                Div(
-                    H4(f'Hay {len(mal)} respuestas incorrectas'),
-                    *[Span(id) for id in mal],
-                    cls='resumen'),
-                Button("Volver al inicio" , hx_get="/", hx_target="#pagina",  hx_swap="innerHTML"), 
+            H2('Resultado'),
+            P(f"Hay {correctas} respuestas correctas de {cantidad}"),
+            H2(f'El exámen está: {resultado}'),
+            Div(
+                H4(f'Hay {len(bien)} respuestas correctas'),
+                *[Span(id) for id in bien],
+                cls='resumen'
             ),
+            Div(
+                H4(f'Hay {len(mal)} respuestas incorrectas'),
+                *[Span(id) for id in mal],
+                cls='resumen'
+            ),
+            Form(
+                *[MostrarFeedback(pregunta) for pregunta in erroneas],
+            ),  
+
+            Button("Volver al inicio" , hx_get="/", hx_target="#pagina",  hx_swap="innerHTML"), 
         )
     )
 
@@ -244,8 +278,7 @@ def post(req, session):
     en_desarrollo = session.get('en_desarrollo', False)
     session['en_desarrollo'] = not en_desarrollo
     
-    print(f"Desarrollador : {en_desarrollo} ({req.query_params})")
-    return P(id="status", content=f"El modo desarrollador está {'activado' if en_desarrollo else 'desactivado'}")
+    return MostrarModo()
 
 
 def info(n, base='pregunta'):
