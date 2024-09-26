@@ -5,7 +5,7 @@ from examen import *
 import json
 
 en_desarrollo = True 
-Version = '0.8.2'
+Version = '0.8.4'
 
 app, rt = fast_app(pico=False, hdrs=(
     Link(rel="stylesheet", href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&display=swap"),
