@@ -383,3 +383,32 @@ input[type="radio"].erronea {
 	accent-color: #f02a3b;
 	/* Cambia el color del radio seleccionado */
 }
+
+@media print {
+	/* Ocultar el botón de impresión al imprimir */
+	button {
+		display: none;
+	}
+	
+	/* Estilos personalizados para los elementos a imprimir */
+	article {
+		box-shadow: none;
+		border: 0px none;
+		border-top: 1px solid #ccc;
+		margin-bottom: 20px;
+		border-radius: 0;
+	}
+	footer {
+		display: none !important;
+	}
+
+	@page {
+        margin: 0;  /* Elimina los márgenes predeterminados */
+    }
+    body {
+        margin: 0;  /* Asegúrate de que el cuerpo también tenga márgenes controlados */
+    }
+	html, body {
+        height: auto;  /* Ajusta la altura automáticamente */
+    }
+}

@@ -5,7 +5,7 @@ from examen import *
 import json
 
 en_desarrollo = True 
-Version = '0.8.4'
+Version = '0.8.6'
 
 app, rt = fast_app(pico=False, hdrs=(
     Link(rel="stylesheet", href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&display=swap"),
@@ -143,6 +143,7 @@ def MostrarModo():
     return A(mensaje, href="#", hx_post="/cambiar-modo", hx_target="#status", hx_swap="outerHTML", id="status")
 
 def Pie():
+    return None
     return Footer(f"Dirección de Tránsito de Yerba Buena - Versión {Version}")
 
 def Layout(titulo, *args, **kwargs):
@@ -226,6 +227,7 @@ def post(session):
     correctas = len(bien)
 
     resultado = 'Aprobado' if correctas >= cantidad * 0.9 else 'Reprobado'
+    respuestas = Form(*[MostrarFeedback(pregunta) for pregunta in erroneas]) if resultado == 'Reprobado' else None
     return (
         Layout(
             H2('Resultado'),
@@ -241,10 +243,8 @@ def post(session):
                 *[Span(id) for id in mal],
                 cls='resumen'
             ),
-            Form(
-                *[MostrarFeedback(pregunta) for pregunta in erroneas],
-            ),  
-
+            respuestas,
+            Button("Imprimir", onclick="window.print()"),
             Button("Volver al inicio" , hx_get="/", hx_target="#pagina",  hx_swap="innerHTML"), 
         )
     )
