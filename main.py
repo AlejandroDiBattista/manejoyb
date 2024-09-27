@@ -5,7 +5,7 @@ from examen import *
 import json
 
 en_desarrollo = True 
-Version = '0.8.6'
+Version = '0.9.0'
 
 app, rt = fast_app(pico=False, hdrs=(
     Link(rel="stylesheet", href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&display=swap"),
@@ -245,6 +245,18 @@ def post(session):
             ),
             respuestas,
             Button("Imprimir", onclick="window.print()"),
+            Button("Pantalla completa", onclick="toggleFullScreen()"),
+            Script("""
+            function toggleFullScreen() {
+                if (!document.fullscreenElement) {
+                    document.documentElement.requestFullscreen();
+                } else {
+                    if (document.exitFullscreen) {
+                        document.exitFullscreen();
+                    }
+                }
+            }
+            """),
             Button("Volver al inicio" , hx_get="/", hx_target="#pagina",  hx_swap="innerHTML"), 
         )
     )
