@@ -5,7 +5,7 @@ from examen import *
 import json
 
 en_desarrollo = True 
-Version = '0.9.0'
+Version = '0.9.1'
 
 app, rt = fast_app(pico=False, hdrs=(
     Link(rel="stylesheet", href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&display=swap"),
@@ -143,7 +143,6 @@ def MostrarModo():
     return A(mensaje, href="#", hx_post="/cambiar-modo", hx_target="#status", hx_swap="outerHTML", id="status")
 
 def Pie():
-    return None
     return Footer(f"Dirección de Tránsito de Yerba Buena - Versión {Version}")
 
 def Layout(titulo, *args, **kwargs):
