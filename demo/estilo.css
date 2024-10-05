@@ -412,3 +412,103 @@ input[type="radio"].erronea {
         height: auto;  /* Ajusta la altura automáticamente */
     }
 }
+
+input.search {
+	width: 400px;
+	font-size: 16px;
+	padding: 10px;
+	border-radius: 50px;
+	border: 1px solid #ccc;
+	margin-bottom: 10px;
+	background-color: white;
+	box-shadow: inset 0 0 2px rgba(0, 0, 0, 0.4);
+}
+
+/* input{
+	font-size: 16px;
+	padding: 10px;
+	border-radius: 5px;
+	border: 1px solid #ccc;
+	margin-bottom: 10px;
+	background-color: white;
+	box-shadow: inset 0 0 2px rgba(0, 0, 0, 0.4);
+}
+
+select{
+	font-size: 16px;
+	padding: 10px;
+	border-radius: 5px;
+	border: 1px solid #ccc;
+	margin-bottom: 10px;
+	background-color: white;
+	box-shadow: inset 0 0 2px rgba(0, 0, 0, 0.4);
+} */
+
+article {
+	max-width: 400px;
+}
+
+.formulario {
+    width: 300px;
+    margin: 0 auto; /* Centrar el formulario horizontalmente */
+
+    div {
+        margin-bottom: 15px; /* Espacio entre los campos del formulario */
+    }
+
+    label {
+        display: block;
+        margin-bottom: 5px; /* Espacio entre la etiqueta y el input */
+        font-weight: bold; /* Opcional: hacer las etiquetas en negrita */
+    }
+
+    .form-input, .form-select {
+		width: 100%;
+		height: 40px;
+		padding: 10px;
+		margin-top: 5px;
+		margin-bottom: 5px;
+		box-sizing: border-box;
+		border: 1px solid #ccc; /* Borde sutil */
+		border-radius: 4px; /* Bordes redondeados */
+		background-color: #f9f9f9; /* Fondo suave */
+		box-shadow: inset 1px 1px 5px rgba(0, 0, 0, 0.1); /* Efecto hundido */
+		outline: none; /* Elimina el borde del foco */
+		font-size: 16px;
+    }
+
+	.form-input:focus, .form-select:focus {
+		border-color: #007bff; /* Cambia el color del borde al enfocarse */
+		box-shadow: inset 1px 1px 5px rgba(0, 0, 0, 0.2); /* Acentúa el efecto hundido al enfocarse */
+	}
+
+	.form-submit {
+		background-color: #007bff; /* Color de fondo para el botón */
+		color: white; /* Color del texto para el botón */
+		border: none; /* Sin borde */
+		border-radius: 4px; /* Bordes redondeados */
+		cursor: pointer; /* Cambiar el cursor al pasar sobre el botón */
+		padding: 10px 15px; /* Espacio interno para los botones */
+		width: 100%; /* Hacer que el botón ocupe todo el ancho */
+		margin-top: 10px; /* Espacio entre el botón y el último campo */
+}
+
+.btn {
+    padding: 10px 15px; /* Espacio interno para los botones */
+    border: none; /* Sin borde */
+    border-radius: 4px; /* Bordes redondeados */
+    cursor: pointer; /* Cambiar el cursor al pasar sobre el botón */
+
+    &-primary {
+        background-color: #007bff; /* Color de fondo para el botón primario */
+        color: white; /* Color del texto para el botón primario */
+
+        &:hover {
+            background-color: #0056b3; /* Color de fondo al pasar el ratón sobre el botón primario */
+        }
+    }
+
+    + .btn {
+        margin-left: 10px; /* Espacio entre los botones */
+    }
+}
