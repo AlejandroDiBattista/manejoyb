@@ -1,6 +1,5 @@
 import streamlit as st
 import qrcode
-from PIL import Image, ImageDraw, ImageFont
 from io import BytesIO
 from sqlalchemy import create_engine, Column, Integer, String, Float
 from sqlalchemy.ext.declarative import declarative_base
@@ -19,115 +18,107 @@ class Donacion(Base):
     monto = Column(Float, nullable=False)
     url = Column(String, nullable=False)
 
-# Crear la tabla en la base de datos
 Base.metadata.create_all(engine)
-
-# Crear una sesión
 Session = sessionmaker(bind=engine)
-session = Session()
 
 def save_data(categoria, monto, url):
-    nueva_donacion = Donacion(categoria=categoria, monto=monto, url=url)
-    session.add(nueva_donacion)
-    session.commit()
+    # Guardar los datos de una nueva donación en la base de datos
+    donacion = Donacion(categoria=categoria, monto=monto, url=url)
+    with Session() as session:
+        session.add(donacion)
+        session.commit()
 
 def generar_qr(url, monto):
     """
-    Genera una imagen de código QR a partir de una URL y agrega el texto "Doná $<monto>".
+    Genera una imagen de código QR a partir de una URL.
     """
-    # Crear el código QR
-    qr = qrcode.QRCode(
-        version=1,
-        box_size=10,
-        border=4
-    )
-    qr.add_data(url)
+    # Crear el código QR con configuración específica
+    qr = qrcode.QRCode( version=1, box_size=10, border=4)
+    qr.add_data(url)  # Agregar la URL a los datos del QR
     qr.make(fit=True)
 
     # Crear una imagen del QR
-    img = qr.make_image(fill='black', back_color='white')
-
-    # Agregar el texto "Doná $<monto>"
-    img = img.convert("RGBA")
-    txt = Image.new('RGBA', img.size, (255, 255, 255, 0))
-
-    # Usar PIL para agregar texto a la imagen
-    draw = ImageDraw.Draw(txt)
-    font = ImageFont.load_default()
-    text = f"Doná ${monto:.2f}"
-    textwidth, textheight = draw.textsize(text, font)
-    width, height = img.size
-    x = (width - textwidth) / 2
-    y = height - textheight - 10
-    draw.text((x, y), text, font=font, fill=(0, 0, 0, 255))
-
-    combined = Image.alpha_composite(img, txt)
+    img = qr.make_image(fill='black', back_color='white').convert("RGB")
 
     # Guardar la imagen en un objeto BytesIO
     buffered = BytesIO()
-    combined.save(buffered, format="PNG")
-    return buffered.getvalue()
+    img.save(buffered, format="PNG")  # Guardar la imagen como PNG en el buffer
+    return buffered.getvalue()  # Devolver el contenido del buffer
 
 def main():
+    # Configurar la página principal de la aplicación
     st.set_page_config(page_title="Generador de Códigos QR", layout="wide")
     st.markdown("# :rainbow[Generador de Códigos QR para Donaciones]")
 
     # Barra lateral para ingresar datos
     categorias = ["Mercado Libre", "Modo"]
-    link_cobro = ['https://mpago.la/22u2j9Y','https://www.modo.com.ar/coupon/?id=41PQqxwezOO5HM48WwkXyE']
-
-    num_montos = 3  # Número de montos a ingresar
+    link_cobro = ['https://mpago.la/22u2j9Y', 'https://www.modo.com.ar/coupon/?id=41PQqxwezOO5HM48WwkXyE']
 
     # Ingresar los montos una sola vez
     montos = []
     st.sidebar.header("Montos a donar")
     etiquetas = ["Mínimo", "Agradecido", "Generoso"]
     with st.sidebar:
-        cols = st.columns(3)
-        for i, (col, etiqueta) in enumerate(zip(cols, etiquetas), start=1):
-            with col:
-                monto = st.number_input(
-                    f"{etiqueta}",
-                    min_value=0.0,
-                    step=100.0,
-                    format="%.0f",
-                    value=[1000.00, 2000.00, 3000.00][i-1],
-                    key=f"monto_{i}"
-                )
-                montos.append(monto)
+        # Crear campos de entrada para los montos de donación
+        for i, etiqueta in enumerate(etiquetas, start=1):
+            monto = st.number_input(
+                f"{etiqueta}",
+                min_value=0.0,  # Valor mínimo permitido
+                step=100.0,  # Paso de incremento
+                format="%.0f",  # Formato del número
+                value=[1000.00, 2000.00, 3000.00][i-1],  # Valor por defecto
+                key=f"monto_{i}"  # Clave para identificar el campo
+            )
+            montos.append(monto)
 
         # Ingresar las URLs para cada categoría en la barra lateral
-        datos = {categoria: {"urls": []} for categoria in categorias}
+        datos = {categoria: [] for categoria in categorias}  # Inicializar diccionario para URLs
         for c, categoria in enumerate(categorias):
             with st.expander(f"{categoria.title()}", expanded=True):
+                # Crear campos de entrada para las URLs de cada monto
                 for i, monto in enumerate(montos, start=1):
                     url = st.text_input(
                         f"Ingrese URL Donar ${monto:.2f}",
                         key=f"{categoria}_url_{i}",
-                        value=link_cobro[c]
+                        value=link_cobro[c]  # Valor por defecto para la URL
                     )
                     if url:
-                        url = f"{url}?monto={monto:.2f}"
-                    datos[categoria]["urls"].append(url)
+                        url = f"{url}?monto={monto:.2f}"  # Agregar monto a la URL
+                    datos[categoria].append(url)  # Guardar la URL en el diccionario
 
         # Botón para guardar todos los datos
         if st.button("Guardar Todo"):
+            # Guardar cada donación en la base de datos
             for categoria in categorias:
                 for i, monto in enumerate(montos):
-                    url = datos[categoria]["urls"][i]
+                    url = datos[categoria][i]
                     if url:
                         save_data(categoria, monto, url)
             st.success("Todos los datos han sido guardados exitosamente.")
 
     # Verificar que todas las URLs estén ingresadas
     for categoria in categorias:
-        for idx, url in enumerate(datos[categoria]["urls"], start=1):
+        for idx, url in enumerate(datos[categoria], start=1):
             if not url:
                 st.warning(f"Por favor, ingresa la URL {idx} para {categoria}.")
                 return
 
-    # Crear dos columnas en la pantalla principal
+    # Crear dos columnas en la pantalla principal para mostrar los QR
     col_ml, col_modo = st.columns(2)
+
+    def mostrar_qr(categoria, columna):
+        # Mostrar los códigos QR en la columna correspondiente
+        with columna:
+            st.header(categoria)
+            for monto, url in zip(montos, datos[categoria]):
+                if monto > 0 and url:
+                    buffer = generar_qr(url, monto)  # Generar el QR
+                    st.image(buffer, width=300)  # Mostrar la imagen del QR
+                    st.markdown(f"## Doná ${monto:.0f}\n---")  # Mostrar el monto
+
+    # Mostrar los QR para cada categoría
+    mostrar_qr("Mercado Libre", col_ml)
+    mostrar_qr("Modo", col_modo)
 
 if __name__ == "__main__":
     main()
