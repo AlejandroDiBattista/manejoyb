@@ -26,7 +26,7 @@ def generar_qr(url, monto):
 
 def main():
     st.set_page_config(page_title="Generador de Códigos QR", layout="wide")
-    st.title("Generador de Códigos QR para Donaciones")
+    st.markdown("# :rainbow[Generador de Códigos QR para Donaciones]")
 
     # Barra lateral para ingresar datos
 
@@ -84,16 +84,16 @@ def main():
         for monto, url in zip(montos, datos["Mercado Libre"]["urls"]):
             if monto > 0 and url:
                 buffer = generar_qr(url, monto)
-                st.image(buffer, caption=f"Doná $ {monto:.2f}", width=300)
-                st.markdown("---")  # Línea separadora
+                st.image(buffer, width=300)
+                st.markdown(f"## Doná ${monto:.0f}\n---")  # Línea separadora
 
     with col_modo:
         st.header("Modo")
         for monto, url in zip(montos, datos["Modo"]["urls"]):
             if monto > 0 and url:
                 buffer = generar_qr(url, monto)
-                st.image(buffer, caption=f"Doná $ {monto:.2f}", width=300)
-                st.markdown("---")  # Línea separadora
+                st.image(buffer, width=300)
+                st.markdown(f"## Doná ${monto:.0f}\n---")  # Línea separadora
 
 if __name__ == "__main__":
     main()
