@@ -1,2 +1,4 @@
-python-fasthtml
-qrcode
+streamlit
+sqlalchemy
+qrcode[pil]
+pillow
