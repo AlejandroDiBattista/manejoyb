@@ -33,7 +33,7 @@ def generar_qr(url, monto):
     Genera una imagen de código QR a partir de una URL.
     """
     # Crear el código QR con configuración específica
-    qr = qrcode.QRCode( version=1, box_size=10, border=4)
+    qr = qrcode.QRCode(version=1, box_size=10, border=4)
     qr.add_data(url)  # Agregar la URL a los datos del QR
     qr.make(fit=True)
 
@@ -52,49 +52,48 @@ def main():
 
     # Barra lateral para ingresar datos
     categorias = ["Mercado Libre", "Modo"]
-    link_cobro = ['https://mpago.la/22u2j9Y', 'https://www.modo.com.ar/coupon/?id=41PQqxwezOO5HM48WwkXyE']
-
+    links = ['https://mpago.la/22u2j9Y', 'https://www.modo.com.ar/coupon/?id=41PQqxwezOO5HM48WwkXyE']
+    montos_default = [1000.00, 2000.00, 3000.00]  # Valores por defecto para los montos
+    
     # Ingresar los montos una sola vez
     montos = []
     st.sidebar.header("Montos a donar")
     etiquetas = ["Mínimo", "Agradecido", "Generoso"]
-    with st.sidebar:
-        # Crear campos de entrada para los montos de donación
-        for i, etiqueta in enumerate(etiquetas, start=1):
+    
+    # Crear tres columnas para los montos
+    columnas = st.sidebar.columns(3)
+    
+    for i, (etiqueta, columna,valor) in enumerate(zip(etiquetas, columnas,montos_default), start=1):
+        with columna:
             monto = st.number_input(
                 f"{etiqueta}",
-                min_value=0.0,  # Valor mínimo permitido
-                step=100.0,  # Paso de incremento
-                format="%.0f",  # Formato del número
-                value=[1000.00, 2000.00, 3000.00][i-1],  # Valor por defecto
-                key=f"monto_{i}"  # Clave para identificar el campo
+                key=f"monto_{i}",
+                format="%.0f",
+                value=valor,
+                min_value=0.0,
+                step=100.0,
             )
             montos.append(monto)
 
-        # Ingresar las URLs para cada categoría en la barra lateral
-        datos = {categoria: [] for categoria in categorias}  # Inicializar diccionario para URLs
-        for c, categoria in enumerate(categorias):
-            with st.expander(f"{categoria.title()}", expanded=True):
-                # Crear campos de entrada para las URLs de cada monto
-                for i, monto in enumerate(montos, start=1):
-                    url = st.text_input(
-                        f"Ingrese URL Donar ${monto:.2f}",
-                        key=f"{categoria}_url_{i}",
-                        value=link_cobro[c]  # Valor por defecto para la URL
-                    )
-                    if url:
-                        url = f"{url}?monto={monto:.2f}"  # Agregar monto a la URL
-                    datos[categoria].append(url)  # Guardar la URL en el diccionario
+    # Ingresar las URLs para cada categoría en la barra lateral
+    datos = {categoria: [] for categoria in categorias}  # Inicializar diccionario para URLs
+    for categoria, link in zip(categorias, links):
+        with st.sidebar.expander(f"{categoria.title()}", expanded=True):
+            # Crear campos de entrada para las URLs de cada monto
+            for i, monto in enumerate(montos, start=1):
+                url = st.text_input(f"Ingrese URL Donar ${monto:.2f}", key=f"{categoria}_url_{i}", value=link)
+                if url:
+                    url = f"{url}?monto={monto:.0f}"  # Agregar monto a la URL
+                datos[categoria].append(url)  # Guardar la URL en el diccionario
 
-        # Botón para guardar todos los datos
-        if st.button("Guardar Todo"):
-            # Guardar cada donación en la base de datos
-            for categoria in categorias:
-                for i, monto in enumerate(montos):
-                    url = datos[categoria][i]
-                    if url:
-                        save_data(categoria, monto, url)
-            st.success("Todos los datos han sido guardados exitosamente.")
+    # Botón para guardar todos los datos
+    if st.sidebar.button("Guardar Todo"):
+        # Guardar cada donación en la base de datos
+        for categoria in categorias:
+            for i, monto in enumerate(montos):
+                url = datos[categoria][i]
+                if url: save_data(categoria, monto, url)
+        st.success("Todos los datos han sido guardados exitosamente.")
 
     # Verificar que todas las URLs estén ingresadas
     for categoria in categorias:
