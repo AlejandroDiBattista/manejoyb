@@ -2,3 +2,4 @@ streamlit
 sqlalchemy
 qrcode[pil]
 pillow
+fpdf
